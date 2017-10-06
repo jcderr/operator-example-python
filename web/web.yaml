@@ -1,0 +1,13 @@
+apiVersion: experimental.derr.io/v1
+kind: Web
+metadata:
+  name: derr
+  namespace: default
+spec:
+  domain: "derr.io"
+  service-image: "bypass/bypass:20171004.abcdef1"
+  # schema-image: "bypass/bypass:20171004.abcdef1"
+  # bypass/bypass:20171004.abcdef1
+  envVars:
+    FOO: bar
+    BAZ: butts
