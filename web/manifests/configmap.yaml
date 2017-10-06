@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ metadata.name }}
+  namespace: {{ metadata.namespace }}
+  labels:
+    app: {{ metadata.name }}
+    thirdparty: Web
+data:
+  FOO: {{ spec.envVars.foo }}
+  BAZ: {{ spec.envVars.baz }}
