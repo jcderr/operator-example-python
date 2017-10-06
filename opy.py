@@ -47,6 +47,35 @@ class Operator(object):
 
 
     # FIXME api/kind to watch as config-parameter
+    def apply_template(self, path, values):
+        env = Environment(loader=FileSystemLoader(os.fspath(path)))
+        item = path
+
+        if not item.is_file():
+            raise
+        # print(item) # FIXME log
+
+        rel_path = os.path.relpath(item, start=path)
+        template = env.get_template(rel_path)
+        manifest = yaml.load(template.render(values))
+        # print(manifest)
+        # print(values)
+
+        api_version = manifest['apiVersion']
+        kind = manifest['kind']
+        namespace = manifest['metadata'].get('namespace')
+        url = self.build_url(api_version, kind, namespace) + "/derr"
+        #^ or: build_url_for_manifest
+        action = "PUT"
+        # FIXME check for changes in manifest and take care to re-apply
+        # and restart pods if necessary
+        print(f"{action} {url}") # FIXME log
+
+        try:
+            result = self.generic.call_api(url, action, body=manifest)
+            print(f"result: ", result)
+        except kubernetes.client.rest.ApiException as e:
+            print(f"! kubernetes.client.rest.ApiException: {e}")
 
     # maybe base_path + rel?
     def apply_templates(self, path, values):
@@ -122,7 +151,7 @@ class Operator(object):
 
     def watch_thirdparty(self, api_version, kind, namespace ):
         # self.lookup_resource(api_version, kind)
-        self.lookup_resource("experimantal.giantswarm.com/v1", "Ghost")
+        self.lookup_resource(api_version, kind)
         #^ if missing? wait loop? watcher? exit?
 
         # FIXME build_url to watch
@@ -148,7 +177,13 @@ class Operator(object):
                 # print(f"DELETE")
                 # print(f"event: {json.dumps(event, indent=2)}")
                 self.delete_thirdparty(event['object'])
-
+            elif event['type'] == "MODIFIED" and event['object']['kind'] == kind:
+                print("run migration!")
+                print("set image!")
+                self.apply_template(
+                    path=Path() / kind.lower() / "manifests" / "deployment.yaml",
+                    values=event['object']
+                )
             else:
                 print(f"event: {json.dumps(event, indent=2)}")
 
@@ -158,7 +193,6 @@ class Operator(object):
 @click.option('--api-version', help='Thirdparty api-version to watch.')
 @click.option('--kind', help='Thirdparty kind to watch.')
 @click.option('--namespace', default=None, help='Namespace to watch. Use None for All')
-
 def click(context, api_version, kind, namespace):
     operator = Operator(context)
     operator.watch_thirdparty(api_version, kind, namespace)

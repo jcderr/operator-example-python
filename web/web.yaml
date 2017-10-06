@@ -1,0 +1,8 @@
+apiVersion: experimental.derr.io/v1
+kind: Web
+metadata:
+  name: derr
+  namespace: default
+spec:
+  domain: "derr.io"
+  image: "ghost:0.11"
